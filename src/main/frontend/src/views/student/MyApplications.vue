@@ -11,7 +11,7 @@
         </el-table-column>
         <el-table-column prop="phase" label="实习阶段" width="120">
           <template #default="{ row }">
-            {{ phaseLabel(row.phase) }}
+            {{ applicationPhaseLabel(row) }}
           </template>
         </el-table-column>
         <el-table-column prop="reviewComment" label="审批意见" min-width="180" />
@@ -64,7 +64,7 @@
             <div>
               <h3 class="page-title" style="font-size: 20px">{{ currentApplication?.projectTitle || '--' }}</h3>
               <p class="page-subtitle">
-                指导教师：{{ currentApplication?.teacherName || '--' }}，当前阶段：{{ phaseLabel(currentApplication?.phase) }}
+                指导教师：{{ currentApplication?.teacherName || '--' }}，当前阶段：{{ applicationPhaseLabel(currentApplication) }}
               </p>
             </div>
           </div>
@@ -129,6 +129,19 @@ function phaseLabel(phase) {
   return map[phase] || phase || '--'
 }
 
+function applicationPhaseLabel(application) {
+  if (!application) {
+    return '--'
+  }
+  if (application.status === 'PENDING') {
+    return '待审批'
+  }
+  if (application.status === 'REJECTED') {
+    return '已驳回'
+  }
+  return phaseLabel(application.phase)
+}
+
 function historyStatus(item) {
   if (item.projectStatus === 'ARCHIVED') {
     return '已归档'
@@ -189,7 +202,7 @@ function buildTimeline(application, journals, report) {
   items.push({
     time: application.reviewedAt || application.createTime || '--',
     title: '当前实习阶段',
-    description: `当前处于 ${phaseLabel(application.phase)}。`,
+    description: `当前处于 ${applicationPhaseLabel(application)}。`,
     type: isHistoryProject(application) ? 'info' : 'warning'
   })
 

@@ -706,6 +706,10 @@ select {
   margin-bottom: 16px;
 }
 
+.auth-form-options {
+  margin: 4px 0 14px;
+}
+
 .auth-primary-btn,
 .auth-secondary-btn {
   width: 100%;

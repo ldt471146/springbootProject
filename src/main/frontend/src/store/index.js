@@ -26,11 +26,11 @@ export const useAppStore = defineStore('app', {
     teacherPendingReportsBadge: (state) => formatBadge(state.reminders.teacherPendingReports)
   },
   actions: {
-    setAuth(payload) {
+    setAuth(payload, rememberMe = true) {
       this.token = payload.token
       this.user = payload.user
-      setToken(payload.token)
-      setUserCache(payload.user)
+      setToken(payload.token, rememberMe)
+      setUserCache(payload.user, rememberMe)
     },
     setUser(user) {
       this.user = user

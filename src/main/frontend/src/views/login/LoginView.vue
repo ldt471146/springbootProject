@@ -53,6 +53,9 @@
               @keyup.enter="handleLogin"
             />
           </el-form-item>
+          <div class="auth-form-options">
+            <el-checkbox v-model="form.rememberMe">记住我</el-checkbox>
+          </div>
           <el-button class="auth-primary-btn" type="primary" :loading="loading" @click="handleLogin">登录</el-button>
           <el-button class="auth-secondary-btn" @click="router.push('/register')">去注册</el-button>
         </el-form>
@@ -76,7 +79,8 @@ const store = useAppStore()
 const loading = ref(false)
 const form = reactive({
   username: '',
-  password: ''
+  password: '',
+  rememberMe: true
 })
 
 const highlights = [
@@ -118,8 +122,11 @@ const workflow = [
 async function handleLogin() {
   loading.value = true
   try {
-    const data = await login(form)
-    store.setAuth(data)
+    const data = await login({
+      username: form.username,
+      password: form.password
+    })
+    store.setAuth(data, form.rememberMe)
     router.push('/dashboard')
   } finally {
     loading.value = false

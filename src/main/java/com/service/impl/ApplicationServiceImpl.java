@@ -76,7 +76,7 @@ public class ApplicationServiceImpl implements ApplicationService {
         application.setStudentId(student.getId());
         application.setApplyReason(dto.getApplyReason());
         application.setStatus(ApprovalStatus.PENDING.name());
-        application.setPhase(InternshipPhase.ENROLLED.name());
+        application.setPhase(null);
         applicationMapper.insert(application);
         log.info("实习申请已提交: applicationId={}, projectId={}, studentId={}",
                 application.getId(), application.getProjectId(), application.getStudentId());
@@ -147,6 +147,11 @@ public class ApplicationServiceImpl implements ApplicationService {
         application.setReviewComment(dto.getComment());
         application.setReviewedBy(UserContext.getCurrentUserId());
         application.setReviewedAt(LocalDateTime.now());
+        if (dto.getStatus() == ApprovalStatus.APPROVED) {
+            application.setPhase(InternshipPhase.ENROLLED.name());
+        } else {
+            application.setPhase(null);
+        }
         applicationMapper.updateById(application);
         log.info("实习申请已审批: applicationId={}, projectId={}, result={}, operatorId={}",
                 application.getId(), application.getProjectId(), application.getStatus(), UserContext.getCurrentUserId());
