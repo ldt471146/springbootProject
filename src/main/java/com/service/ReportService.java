@@ -3,6 +3,7 @@ package com.service;
 import com.common.PageResult;
 import com.dto.ReportDTO;
 import com.dto.ReportReviewDTO;
+import com.entity.Attachment;
 import com.entity.Report;
 import com.vo.AttachmentVO;
 import com.vo.ReportVO;
@@ -23,6 +24,12 @@ public interface ReportService {
     ReportVO review(Long id, ReportReviewDTO dto);
 
     AttachmentVO upload(MultipartFile file);
+
+    AttachmentVO uploadAttachment(Long reportId, MultipartFile file);
+
+    void deleteAttachment(Long attachmentId);
+
+    Attachment getAttachmentByIdOrThrow(Long attachmentId);
 
     Report getByIdOrThrow(Long id);
 }

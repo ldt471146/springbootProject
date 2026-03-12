@@ -6,12 +6,14 @@ import com.common.enums.UserStatus;
 import com.entity.User;
 import com.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+@Slf4j
 @Configuration
 @RequiredArgsConstructor
 public class DataInitializer {
@@ -25,7 +27,7 @@ public class DataInitializer {
     @Value("${app.init-admin.username:admin}")
     private String username;
 
-    @Value("${app.init-admin.password:123456}")
+    @Value("${app.init-admin.password:1234567}")
     private String password;
 
     @Value("${app.init-admin.real-name:系统管理员}")
@@ -35,6 +37,7 @@ public class DataInitializer {
     public ApplicationRunner initAdminRunner() {
         return args -> {
             if (!enabled) {
+                log.info("默认管理员初始化已关闭");
                 return;
             }
             User admin = userMapper.selectOne(new LambdaQueryWrapper<User>()
@@ -49,6 +52,7 @@ public class DataInitializer {
                 admin.setRole(RoleEnum.ADMIN.name());
                 admin.setStatus(UserStatus.ACTIVE.name());
                 userMapper.insert(admin);
+                log.info("默认管理员账号已创建: username={}, role={}", username, RoleEnum.ADMIN.name());
                 return;
             }
             admin.setPassword(passwordEncoder.encode(password));
@@ -56,6 +60,8 @@ public class DataInitializer {
             admin.setRole(RoleEnum.ADMIN.name());
             admin.setStatus(UserStatus.ACTIVE.name());
             userMapper.updateById(admin);
+            log.info("默认管理员账号已同步: id={}, username={}, status={}",
+                    admin.getId(), admin.getUsername(), admin.getStatus());
         };
     }
 }

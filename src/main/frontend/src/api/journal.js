@@ -60,3 +60,38 @@ export function reviewJournal(id, data) {
     data
   })
 }
+
+export function uploadJournalAttachment(id, file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request({
+    url: `/api/journal/${id}/attachments`,
+    method: 'post',
+    data: formData,
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
+}
+
+export function deleteJournalAttachment(attachmentId) {
+  return request({
+    url: `/api/journal/attachments/${attachmentId}`,
+    method: 'delete'
+  })
+}
+
+export function fetchJournalAttachmentFile(attachmentId) {
+  return request({
+    url: `/api/journal/attachments/${attachmentId}/file`,
+    method: 'get',
+    responseType: 'blob'
+  })
+}
+
+export function fetchJournalAttachmentPreview(attachmentId) {
+  return request({
+    url: `/api/journal/attachments/${attachmentId}/preview`,
+    method: 'get'
+  })
+}

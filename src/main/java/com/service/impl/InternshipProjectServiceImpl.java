@@ -19,10 +19,13 @@ import com.service.support.ViewAssembler;
 import com.vo.ProjectVO;
 import com.vo.UserVO;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class InternshipProjectServiceImpl implements InternshipProjectService {
@@ -129,7 +132,7 @@ public class InternshipProjectServiceImpl implements InternshipProjectService {
                 .eq(InternApplication::getStatus, ApprovalStatus.APPROVED.name())
                 .orderByDesc(InternApplication::getCreateTime));
         List<UserVO> records = result.getRecords().stream()
-                .map(item -> userService.getByIdOrThrow(item.getStudentId()))
+                .map(item -> userService.getByIdIncludingDeletedOrThrow(item.getStudentId()))
                 .map(viewAssembler::toUserVO)
                 .toList();
         return PageResult.of(result, records);
@@ -150,6 +153,27 @@ public class InternshipProjectServiceImpl implements InternshipProjectService {
                 .eq(InternApplication::getProjectId, projectId)
                 .eq(InternApplication::getStatus, ApprovalStatus.APPROVED.name()));
         return count == null ? 0L : count;
+    }
+
+    @Override
+    public int autoArchiveExpiredProjects() {
+        LocalDate today = LocalDate.now();
+        List<InternshipProject> expiredProjects = projectMapper.selectList(new LambdaQueryWrapper<InternshipProject>()
+                .in(InternshipProject::getStatus, ProjectStatus.OPEN.name(), ProjectStatus.CLOSED.name())
+                .lt(InternshipProject::getEndDate, today));
+        if (expiredProjects.isEmpty()) {
+            return 0;
+        }
+        int archivedCount = 0;
+        for (InternshipProject project : expiredProjects) {
+            String previousStatus = project.getStatus();
+            project.setStatus(ProjectStatus.ARCHIVED.name());
+            projectMapper.updateById(project);
+            archivedCount++;
+            log.info("项目已自动归档: projectId={}, title={}, endDate={}, previousStatus={}",
+                    project.getId(), project.getTitle(), project.getEndDate(), previousStatus);
+        }
+        return archivedCount;
     }
 
     private void fillProject(InternshipProject project, ProjectDTO dto) {

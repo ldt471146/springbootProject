@@ -1,19 +1,27 @@
 <template>
   <div class="auth-shell">
     <section class="auth-brand">
-      <div>
-        <span class="auth-brand-badge">ACCOUNT REGISTRATION</span>
-        <h1>先注册，再进入审批流</h1>
-        <p>学生和教师账号注册后默认进入待审批状态，管理员在后台审核通过后才能登录系统。</p>
+      <div class="auth-brand-top">
+        <div>
+          <span class="auth-brand-badge">ACCOUNT REGISTRATION</span>
+          <p class="auth-kicker">New Account Onboarding</p>
+          <h1>先创建账号，再进入审批流。</h1>
+          <p class="auth-brand-lead">学生和教师账号提交后会进入管理员审批队列，通过后自动启用对应角色的后台入口权限。</p>
+        </div>
       </div>
-      <p>建议先创建一个学生账号和一个教师账号，再使用默认管理员 `admin / 123456` 完成审批。</p>
+      <div class="auth-inline-tips">
+        <div class="auth-inline-tip">学生建议完整填写学号、学院、专业和年级信息，便于后续项目匹配与成绩归档。</div>
+        <div class="auth-inline-tip">教师账号审批通过后即可进入项目发布、申请审批、日志评阅和报告评阅流程。</div>
+        <div class="auth-inline-tip">注册成功后返回登录页，待管理员审核通过后再完成身份认证。</div>
+      </div>
     </section>
 
     <section class="auth-panel-wrap">
       <div class="auth-panel">
+        <p class="auth-panel-kicker">账号创建</p>
         <h2>创建账号</h2>
         <p>填写基础信息，提交后等待管理员审批。</p>
-        <el-form :model="form" label-position="top" @submit.prevent>
+        <el-form :model="form" label-position="top" class="auth-form" @submit.prevent>
           <div class="form-grid">
             <el-form-item label="用户名">
               <el-input v-model="form.username" placeholder="用户名" />
@@ -46,8 +54,8 @@
               <el-input v-model="form.email" />
             </el-form-item>
           </div>
-          <el-button type="primary" style="width: 100%" :loading="loading" @click="handleRegister">提交注册</el-button>
-          <el-button style="width: 100%; margin-top: 12px" @click="router.push('/login')">返回登录</el-button>
+          <el-button class="auth-primary-btn" type="primary" :loading="loading" @click="handleRegister">提交注册</el-button>
+          <el-button class="auth-secondary-btn" @click="router.push('/login')">返回登录</el-button>
         </el-form>
       </div>
     </section>

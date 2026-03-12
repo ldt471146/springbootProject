@@ -7,6 +7,7 @@ import com.entity.InternshipProject;
 import com.entity.Journal;
 import com.entity.Report;
 import com.entity.User;
+import com.mapper.AttachmentMapper;
 import com.mapper.ApplicationMapper;
 import com.mapper.InternshipProjectMapper;
 import com.mapper.UserMapper;
@@ -25,6 +26,10 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class ViewAssembler {
 
+    private static final String JOURNAL_ATTACHMENT_REF_TYPE = "JOURNAL_ATTACHMENT";
+    private static final String REPORT_ATTACHMENT_REF_TYPE = "REPORT_ATTACHMENT";
+
+    private final AttachmentMapper attachmentMapper;
     private final UserMapper userMapper;
     private final InternshipProjectMapper projectMapper;
     private final ApplicationMapper applicationMapper;
@@ -45,7 +50,7 @@ public class ViewAssembler {
         ProjectVO vo = new ProjectVO();
         BeanUtils.copyProperties(project, vo, "deleted", "updateTime");
         vo.setParticipantCount(participantCount);
-        User teacher = userMapper.selectById(project.getTeacherId());
+        User teacher = userMapper.selectIncludingDeletedById(project.getTeacherId());
         vo.setTeacherName(teacher == null ? "-" : teacher.getRealName());
         return vo;
     }
@@ -57,11 +62,14 @@ public class ViewAssembler {
         ApplicationVO vo = new ApplicationVO();
         BeanUtils.copyProperties(application, vo, "deleted", "updateTime");
         InternshipProject project = projectMapper.selectById(application.getProjectId());
-        User student = userMapper.selectById(application.getStudentId());
-        User reviewer = application.getReviewedBy() == null ? null : userMapper.selectById(application.getReviewedBy());
+        User student = userMapper.selectIncludingDeletedById(application.getStudentId());
+        User teacher = project == null ? null : userMapper.selectIncludingDeletedById(project.getTeacherId());
+        User reviewer = application.getReviewedBy() == null ? null : userMapper.selectIncludingDeletedById(application.getReviewedBy());
         vo.setProjectTitle(project == null ? "-" : project.getTitle());
+        vo.setProjectStatus(project == null ? null : project.getStatus());
         vo.setStudentName(student == null ? "-" : student.getRealName());
         vo.setStudentNo(student == null ? null : student.getStudentNo());
+        vo.setTeacherName(teacher == null ? "-" : teacher.getRealName());
         vo.setReviewedByName(reviewer == null ? null : reviewer.getRealName());
         return vo;
     }
@@ -74,9 +82,16 @@ public class ViewAssembler {
         BeanUtils.copyProperties(journal, vo, "deleted", "updateTime");
         InternApplication application = applicationMapper.selectById(journal.getApplicationId());
         InternshipProject project = application == null ? null : projectMapper.selectById(application.getProjectId());
-        User student = userMapper.selectById(journal.getStudentId());
+        User student = userMapper.selectIncludingDeletedById(journal.getStudentId());
         vo.setProjectTitle(project == null ? "-" : project.getTitle());
         vo.setStudentName(student == null ? "-" : student.getRealName());
+        vo.setAttachments(attachmentMapper.selectList(new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Attachment>()
+                        .eq(Attachment::getRefType, JOURNAL_ATTACHMENT_REF_TYPE)
+                        .eq(Attachment::getRefId, journal.getId())
+                        .orderByDesc(Attachment::getCreateTime))
+                .stream()
+                .map(this::toAttachmentVO)
+                .toList());
         return vo;
     }
 
@@ -88,9 +103,16 @@ public class ViewAssembler {
         BeanUtils.copyProperties(report, vo, "deleted", "updateTime");
         InternApplication application = applicationMapper.selectById(report.getApplicationId());
         InternshipProject project = application == null ? null : projectMapper.selectById(application.getProjectId());
-        User student = userMapper.selectById(report.getStudentId());
+        User student = userMapper.selectIncludingDeletedById(report.getStudentId());
         vo.setProjectTitle(project == null ? "-" : project.getTitle());
         vo.setStudentName(student == null ? "-" : student.getRealName());
+        vo.setAttachments(attachmentMapper.selectList(new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Attachment>()
+                        .eq(Attachment::getRefType, REPORT_ATTACHMENT_REF_TYPE)
+                        .eq(Attachment::getRefId, report.getId())
+                        .orderByDesc(Attachment::getCreateTime))
+                .stream()
+                .map(this::toAttachmentVO)
+                .toList());
         return vo;
     }
 
@@ -102,8 +124,8 @@ public class ViewAssembler {
         BeanUtils.copyProperties(grade, vo, "deleted", "updateTime");
         InternApplication application = applicationMapper.selectById(grade.getApplicationId());
         InternshipProject project = application == null ? null : projectMapper.selectById(application.getProjectId());
-        User student = userMapper.selectById(grade.getStudentId());
-        User teacher = userMapper.selectById(grade.getTeacherId());
+        User student = userMapper.selectIncludingDeletedById(grade.getStudentId());
+        User teacher = userMapper.selectIncludingDeletedById(grade.getTeacherId());
         vo.setProjectTitle(project == null ? "-" : project.getTitle());
         vo.setStudentName(student == null ? "-" : student.getRealName());
         vo.setTeacherName(teacher == null ? "-" : teacher.getRealName());

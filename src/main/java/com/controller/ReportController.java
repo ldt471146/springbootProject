@@ -6,10 +6,13 @@ import com.common.Result;
 import com.common.enums.RoleEnum;
 import com.dto.ReportDTO;
 import com.dto.ReportReviewDTO;
+import com.entity.Attachment;
 import com.entity.Report;
+import com.service.DocumentPreviewService;
 import com.service.FileStorageService;
 import com.service.ReportService;
 import com.vo.AttachmentVO;
+import com.vo.FilePreviewVO;
 import com.vo.ReportVO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +24,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -42,6 +46,7 @@ public class ReportController {
 
     private final ReportService reportService;
     private final FileStorageService fileStorageService;
+    private final DocumentPreviewService documentPreviewService;
 
     @RequireRole(RoleEnum.STUDENT)
     @PostMapping
@@ -95,14 +100,60 @@ public class ReportController {
                 .contentType(mediaType)
                 .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.builder(inline ? "inline" : "attachment")
                         .filename(path.getFileName().toString(), StandardCharsets.UTF_8)
-                        .build()
-                        .toString())
+                .build()
+                .toString())
                 .body(resource);
+    }
+
+    @GetMapping("/file/{id}/preview")
+    public Result<FilePreviewVO> previewFile(@PathVariable Long id) throws IOException {
+        Report report = reportService.getByIdOrThrow(id);
+        Path path = fileStorageService.resolvePath(report.getFileUrl());
+        String contentType = Files.probeContentType(path);
+        return Result.ok(documentPreviewService.buildPreview(path, path.getFileName().toString(), contentType));
     }
 
     @RequireRole(RoleEnum.STUDENT)
     @PostMapping("/upload")
     public Result<AttachmentVO> upload(@RequestPart("file") MultipartFile file) {
         return Result.ok(reportService.upload(file));
+    }
+
+    @RequireRole(RoleEnum.STUDENT)
+    @PostMapping("/{id}/attachments")
+    public Result<AttachmentVO> uploadAttachment(@PathVariable Long id, @RequestPart("file") MultipartFile file) {
+        return Result.ok(reportService.uploadAttachment(id, file));
+    }
+
+    @RequireRole(RoleEnum.STUDENT)
+    @DeleteMapping("/attachments/{attachmentId}")
+    public Result<Void> deleteAttachment(@PathVariable Long attachmentId) {
+        reportService.deleteAttachment(attachmentId);
+        return Result.ok();
+    }
+
+    @GetMapping("/attachments/{attachmentId}/file")
+    public ResponseEntity<Resource> attachmentFile(@PathVariable Long attachmentId) throws IOException {
+        Attachment attachment = reportService.getAttachmentByIdOrThrow(attachmentId);
+        Path path = fileStorageService.resolvePath(attachment.getFileUrl());
+        Resource resource = new UrlResource(path.toUri());
+        String contentType = Files.probeContentType(path);
+        MediaType mediaType = contentType == null ? MediaType.APPLICATION_OCTET_STREAM : MediaType.parseMediaType(contentType);
+        boolean inline = contentType != null && (contentType.startsWith("image/") || "application/pdf".equalsIgnoreCase(contentType));
+        return ResponseEntity.ok()
+                .contentType(mediaType)
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.builder(inline ? "inline" : "attachment")
+                        .filename(attachment.getOriginalName(), StandardCharsets.UTF_8)
+                .build()
+                .toString())
+                .body(resource);
+    }
+
+    @GetMapping("/attachments/{attachmentId}/preview")
+    public Result<FilePreviewVO> attachmentPreview(@PathVariable Long attachmentId) throws IOException {
+        Attachment attachment = reportService.getAttachmentByIdOrThrow(attachmentId);
+        Path path = fileStorageService.resolvePath(attachment.getFileUrl());
+        String contentType = Files.probeContentType(path);
+        return Result.ok(documentPreviewService.buildPreview(path, attachment.getOriginalName(), contentType));
     }
 }

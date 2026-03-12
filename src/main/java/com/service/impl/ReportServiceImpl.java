@@ -7,10 +7,12 @@ import com.common.enums.ApprovalStatus;
 import com.common.enums.ReportStatus;
 import com.dto.ReportDTO;
 import com.dto.ReportReviewDTO;
+import com.entity.Attachment;
 import com.entity.InternApplication;
 import com.entity.InternshipProject;
 import com.entity.Report;
 import com.exception.BusinessException;
+import com.mapper.AttachmentMapper;
 import com.mapper.ReportMapper;
 import com.security.UserContext;
 import com.service.ApplicationService;
@@ -21,6 +23,7 @@ import com.service.support.ViewAssembler;
 import com.vo.AttachmentVO;
 import com.vo.ReportVO;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -31,9 +34,13 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class ReportServiceImpl implements ReportService {
 
+    private static final String REPORT_ATTACHMENT_REF_TYPE = "REPORT_ATTACHMENT";
+
+    private final AttachmentMapper attachmentMapper;
     private final ReportMapper reportMapper;
     private final ApplicationService applicationService;
     private final InternshipProjectService projectService;
@@ -60,6 +67,8 @@ public class ReportServiceImpl implements ReportService {
         report.setIsExcellent(0);
         report.setAiFlag(analyzeAiFlag(dto.getSummary()));
         reportMapper.insert(report);
+        log.info("报告已提交: reportId={}, applicationId={}, studentId={}, aiFlag={}",
+                report.getId(), report.getApplicationId(), report.getStudentId(), report.getAiFlag());
         return viewAssembler.toReportVO(report);
     }
 
@@ -76,6 +85,8 @@ public class ReportServiceImpl implements ReportService {
         report.setReviewedAt(null);
         report.setAiFlag(analyzeAiFlag(dto.getSummary()));
         reportMapper.updateById(report);
+        log.info("报告已更新并重新提交: reportId={}, applicationId={}, studentId={}, aiFlag={}",
+                report.getId(), report.getApplicationId(), report.getStudentId(), report.getAiFlag());
         return viewAssembler.toReportVO(report);
     }
 
@@ -130,12 +141,51 @@ public class ReportServiceImpl implements ReportService {
         report.setIsExcellent(excellent);
         report.setStatus(excellent == 1 ? ReportStatus.EXCELLENT.name() : dto.getStatus().name());
         reportMapper.updateById(report);
+        log.info("报告评阅完成: reportId={}, teacherId={}, status={}, score={}, excellent={}",
+                report.getId(), UserContext.getCurrentUserId(), report.getStatus(), report.getTeacherScore(), excellent);
         return viewAssembler.toReportVO(report);
     }
 
     @Override
     public AttachmentVO upload(MultipartFile file) {
-        return fileStorageService.store(file, "REPORT", 0L);
+        AttachmentVO attachment = fileStorageService.store(file, "REPORT", 0L);
+        log.info("报告附件上传: userId={}, originalName={}, fileUrl={}",
+                UserContext.getCurrentUserId(), attachment.getOriginalName(), attachment.getFileUrl());
+        return attachment;
+    }
+
+    @Override
+    public AttachmentVO uploadAttachment(Long reportId, MultipartFile file) {
+        Report report = getByIdOrThrow(reportId);
+        assertStudentReportOwner(report);
+        AttachmentVO attachment = fileStorageService.store(file, REPORT_ATTACHMENT_REF_TYPE, reportId);
+        log.info("报告附加材料已上传: reportId={}, attachmentId={}, userId={}, originalName={}",
+                reportId, attachment.getId(), UserContext.getCurrentUserId(), attachment.getOriginalName());
+        return attachment;
+    }
+
+    @Override
+    public void deleteAttachment(Long attachmentId) {
+        Attachment attachment = getAttachmentByIdOrThrow(attachmentId);
+        Report report = getByIdOrThrow(attachment.getRefId());
+        assertStudentReportOwner(report);
+        attachmentMapper.deleteById(attachmentId);
+        log.info("报告附加材料已删除: reportId={}, attachmentId={}, userId={}",
+                report.getId(), attachmentId, UserContext.getCurrentUserId());
+    }
+
+    @Override
+    public Attachment getAttachmentByIdOrThrow(Long attachmentId) {
+        Attachment attachment = attachmentMapper.selectById(attachmentId);
+        if (attachment == null || (attachment.getDeleted() != null && attachment.getDeleted() == 1)) {
+            throw new BusinessException(404, "附件不存在");
+        }
+        if (!REPORT_ATTACHMENT_REF_TYPE.equals(attachment.getRefType())) {
+            throw new BusinessException(400, "附件类型不匹配");
+        }
+        Report report = getByIdOrThrow(attachment.getRefId());
+        authorizeRead(report);
+        return attachment;
     }
 
     @Override

@@ -19,6 +19,7 @@ import com.service.InternshipProjectService;
 import com.service.support.ViewAssembler;
 import com.vo.GradeVO;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -27,6 +28,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class GradeServiceImpl implements GradeService {
 
@@ -51,6 +53,9 @@ public class GradeServiceImpl implements GradeService {
         Grade grade = new Grade();
         fillGrade(grade, dto, application, project);
         gradeMapper.insert(grade);
+        log.info("成绩已创建: gradeId={}, applicationId={}, studentId={}, teacherId={}, finalScore={}, adminStatus={}",
+                grade.getId(), grade.getApplicationId(), grade.getStudentId(), grade.getTeacherId(),
+                grade.getFinalScore(), grade.getAdminStatus());
         return viewAssembler.toGradeVO(grade);
     }
 
@@ -62,6 +67,9 @@ public class GradeServiceImpl implements GradeService {
         assertTeacherOwner(project);
         fillGrade(grade, dto, application, project);
         gradeMapper.updateById(grade);
+        log.info("成绩已更新: gradeId={}, applicationId={}, studentId={}, teacherId={}, finalScore={}, adminStatus={}",
+                grade.getId(), grade.getApplicationId(), grade.getStudentId(), grade.getTeacherId(),
+                grade.getFinalScore(), grade.getAdminStatus());
         return viewAssembler.toGradeVO(grade);
     }
 
@@ -114,6 +122,8 @@ public class GradeServiceImpl implements GradeService {
         grade.setConfirmedBy(UserContext.getCurrentUserId());
         grade.setConfirmedAt(LocalDateTime.now());
         gradeMapper.updateById(grade);
+        log.info("成绩终审完成: gradeId={}, adminId={}, adminStatus={}, finalScore={}",
+                grade.getId(), UserContext.getCurrentUserId(), grade.getAdminStatus(), grade.getFinalScore());
         return viewAssembler.toGradeVO(grade);
     }
 

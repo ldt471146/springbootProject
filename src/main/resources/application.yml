@@ -45,7 +45,10 @@ app:
     username: admin
     password: 1234567
     real-name: 系统管理员
-
+  project-auto-archive:
+    enabled: true
+    cron: "0 0/30 * * * ?"
+ 
 springdoc:
   api-docs:
     path: /v3/api-docs

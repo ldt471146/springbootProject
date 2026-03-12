@@ -13,6 +13,7 @@ import com.service.UserService;
 import com.vo.UserVO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -77,6 +78,13 @@ public class UserController {
     @PutMapping("/{id}/status")
     public Result<Void> status(@PathVariable Long id, @RequestBody @Valid UserStatusDTO dto) {
         userService.changeStatus(id, dto);
+        return Result.ok();
+    }
+
+    @RequireRole(RoleEnum.ADMIN)
+    @DeleteMapping("/{id}")
+    public Result<Void> delete(@PathVariable Long id) {
+        userService.deleteUser(id);
         return Result.ok();
     }
 }

@@ -23,6 +23,7 @@ import com.service.UserService;
 import com.service.support.ViewAssembler;
 import com.vo.ApplicationVO;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -32,6 +33,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ApplicationServiceImpl implements ApplicationService {
@@ -76,6 +78,8 @@ public class ApplicationServiceImpl implements ApplicationService {
         application.setStatus(ApprovalStatus.PENDING.name());
         application.setPhase(InternshipPhase.ENROLLED.name());
         applicationMapper.insert(application);
+        log.info("实习申请已提交: applicationId={}, projectId={}, studentId={}",
+                application.getId(), application.getProjectId(), application.getStudentId());
         return viewAssembler.toApplicationVO(application);
     }
 
@@ -106,6 +110,7 @@ public class ApplicationServiceImpl implements ApplicationService {
             throw new BusinessException(400, "仅待审批申请可撤回");
         }
         applicationMapper.deleteById(id);
+        log.info("实习申请已撤回: applicationId={}, studentId={}", id, application.getStudentId());
     }
 
     @Override
@@ -143,6 +148,8 @@ public class ApplicationServiceImpl implements ApplicationService {
         application.setReviewedBy(UserContext.getCurrentUserId());
         application.setReviewedAt(LocalDateTime.now());
         applicationMapper.updateById(application);
+        log.info("实习申请已审批: applicationId={}, projectId={}, result={}, operatorId={}",
+                application.getId(), application.getProjectId(), application.getStatus(), UserContext.getCurrentUserId());
         return viewAssembler.toApplicationVO(application);
     }
 
@@ -156,6 +163,8 @@ public class ApplicationServiceImpl implements ApplicationService {
         }
         application.setPhase(dto.getPhase().name());
         applicationMapper.updateById(application);
+        log.info("实习阶段已更新: applicationId={}, phase={}, operatorId={}",
+                application.getId(), application.getPhase(), UserContext.getCurrentUserId());
         return viewAssembler.toApplicationVO(application);
     }
 

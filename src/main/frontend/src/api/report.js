@@ -59,3 +59,53 @@ export function uploadReportFile(file) {
     }
   })
 }
+
+export function uploadReportAttachment(id, file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request({
+    url: `/api/report/${id}/attachments`,
+    method: 'post',
+    data: formData,
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
+}
+
+export function deleteReportAttachment(attachmentId) {
+  return request({
+    url: `/api/report/attachments/${attachmentId}`,
+    method: 'delete'
+  })
+}
+
+export function fetchReportFile(id) {
+  return request({
+    url: `/api/report/file/${id}`,
+    method: 'get',
+    responseType: 'blob'
+  })
+}
+
+export function fetchReportAttachmentFile(attachmentId) {
+  return request({
+    url: `/api/report/attachments/${attachmentId}/file`,
+    method: 'get',
+    responseType: 'blob'
+  })
+}
+
+export function fetchReportFilePreview(id) {
+  return request({
+    url: `/api/report/file/${id}/preview`,
+    method: 'get'
+  })
+}
+
+export function fetchReportAttachmentPreview(attachmentId) {
+  return request({
+    url: `/api/report/attachments/${attachmentId}/preview`,
+    method: 'get'
+  })
+}

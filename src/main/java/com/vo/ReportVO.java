@@ -4,6 +4,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class ReportVO {
@@ -23,6 +24,7 @@ public class ReportVO {
     private BigDecimal teacherScore;
     private Integer isExcellent;
     private String aiFlag;
+    private List<AttachmentVO> attachments;
     private LocalDateTime reviewedAt;
     private LocalDateTime createTime;
 }

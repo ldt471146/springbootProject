@@ -1,6 +1,6 @@
 <template>
   <div class="content-stack">
-    <PanelCard title="项目管理" subtitle="创建项目并导出参与学生名单">
+    <PanelCard title="项目管理" subtitle="创建项目、维护状态，活动结束后系统会自动归档">
       <template #extra>
         <el-button type="primary" @click="openDialog()">新建项目</el-button>
       </template>
@@ -10,13 +10,17 @@
         <el-table-column prop="company" label="单位" min-width="140" />
         <el-table-column prop="semester" label="学期" width="130" />
         <el-table-column prop="participantCount" label="已通过人数" width="110" />
-        <el-table-column prop="status" label="状态" width="110" />
+        <el-table-column label="状态" width="120">
+          <template #default="{ row }">
+            <el-tag :type="statusTagType(row)">{{ statusLabel(row) }}</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="320" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" link @click="openDialog(row)">编辑</el-button>
-            <el-button type="warning" link @click="handleClose(row.id)">关闭</el-button>
-            <el-button type="success" link @click="handleExport(row.id, false)">导出 Excel</el-button>
-            <el-button type="success" link @click="handleExport(row.id, true)">导出 PDF</el-button>
+            <el-button v-if="row.status !== 'ARCHIVED'" type="warning" link @click="handleClose(row.id)">关闭</el-button>
+            <el-button type="success" link @click="handleExport(row, false)">导出 Excel</el-button>
+            <el-button type="success" link @click="handleExport(row, true)">导出 PDF</el-button>
             <el-button type="danger" link @click="handleDelete(row.id)">删除</el-button>
           </template>
         </el-table-column>
@@ -83,7 +87,7 @@
 import { reactive, ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PanelCard from '@/components/PanelCard.vue'
-import { archiveProject, closeProject, createProject, deleteProject, listMyProjects, updateProject } from '@/api/project'
+import { closeProject, createProject, deleteProject, listMyProjects, updateProject } from '@/api/project'
 import { exportProjectParticipants, exportProjectParticipantsPdf } from '@/api/export'
 import { saveBlobResponse } from '@/utils/download'
 
@@ -161,9 +165,48 @@ async function handleDelete(id) {
   loadData()
 }
 
-async function handleExport(id, pdf) {
-  const response = pdf ? await exportProjectParticipantsPdf(id) : await exportProjectParticipants(id)
-  saveBlobResponse(response, pdf ? `participants-${id}.pdf` : `participants-${id}.xlsx`)
+async function handleExport(row, pdf) {
+  if (!row.participantCount) {
+    ElMessage.warning('当前项目暂无已通过学生，无法导出名单')
+    return
+  }
+  try {
+    const response = pdf ? await exportProjectParticipantsPdf(row.id) : await exportProjectParticipants(row.id)
+    await saveBlobResponse(response, pdf ? `participants-${row.id}.pdf` : `participants-${row.id}.xlsx`)
+    ElMessage.success(pdf ? 'PDF 已开始下载' : 'Excel 已开始下载')
+  } catch (error) {
+    ElMessage.error(error.message || '导出失败')
+  }
+}
+
+function statusLabel(row) {
+  if (row.status === 'ARCHIVED') {
+    return isAutoArchived(row) ? '自动归档' : '已归档'
+  }
+  if (row.status === 'CLOSED') {
+    return '已关闭'
+  }
+  return '开放中'
+}
+
+function statusTagType(row) {
+  if (row.status === 'ARCHIVED') {
+    return 'info'
+  }
+  if (row.status === 'CLOSED') {
+    return 'warning'
+  }
+  return 'success'
+}
+
+function isAutoArchived(row) {
+  if (row.status !== 'ARCHIVED' || !row.endDate) {
+    return false
+  }
+  const endDate = new Date(`${row.endDate}T00:00:00`)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return endDate.getTime() < today.getTime()
 }
 
 onMounted(loadData)

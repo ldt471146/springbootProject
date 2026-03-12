@@ -23,12 +23,13 @@
         <el-table-column prop="role" label="角色" width="120" />
         <el-table-column prop="status" label="状态" width="120" />
         <el-table-column prop="college" label="学院" min-width="160" />
-        <el-table-column label="操作" width="240">
+        <el-table-column label="操作" width="300">
           <template #default="{ row }">
             <el-button type="primary" link @click="toggleStatus(row)">
               {{ row.status === 'ACTIVE' ? '禁用' : '启用' }}
             </el-button>
             <el-button type="warning" link @click="handleResetPassword(row)">重置密码</el-button>
+            <el-button v-if="row.role !== 'ADMIN'" type="danger" link @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -41,7 +42,7 @@ import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PanelCard from '@/components/PanelCard.vue'
 import { useAppStore } from '@/store'
-import { approveUser, listPendingUsers, listUsers, resetPassword, updateUserStatus } from '@/api/user'
+import { approveUser, deleteUser, listPendingUsers, listUsers, resetPassword, updateUserStatus } from '@/api/user'
 
 const store = useAppStore()
 const pendingRecords = ref([])
@@ -54,13 +55,12 @@ async function loadData() {
   ])
   pendingRecords.value = pendingData.records
   allRecords.value = allData.records
-  store.setAdminPendingUsersCount(pendingData.total)
 }
 
 async function handleApprove(id, status) {
   await approveUser(id, { status, comment: '' })
   ElMessage.success('审批已完成')
-  await loadData()
+  await Promise.all([loadData(), store.refreshReminders()])
 }
 
 async function toggleStatus(row) {
@@ -80,5 +80,18 @@ async function handleResetPassword(row) {
   ElMessage.success('密码已重置')
 }
 
-onMounted(loadData)
+async function handleDelete(row) {
+  await ElMessageBox.confirm(`确认删除用户“${row.realName || row.username}”吗？删除后账号将不可登录。`, '删除用户', {
+    type: 'warning',
+    confirmButtonText: '删除',
+    cancelButtonText: '取消'
+  })
+  await deleteUser(row.id)
+  ElMessage.success('用户已删除')
+  await Promise.all([loadData(), store.refreshReminders()])
+}
+
+onMounted(async () => {
+  await Promise.all([loadData(), store.refreshReminders()])
+})
 </script>

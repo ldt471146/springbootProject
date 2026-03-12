@@ -36,8 +36,10 @@
 import { reactive, ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import PanelCard from '@/components/PanelCard.vue'
+import { useAppStore } from '@/store'
 import { confirmGrade, listAdminGrades } from '@/api/grade'
 
+const store = useAppStore()
 const records = ref([])
 const dialogVisible = ref(false)
 const currentId = ref(null)
@@ -62,8 +64,10 @@ async function submitConfirm() {
   await confirmGrade(currentId.value, form)
   ElMessage.success('终审已保存')
   dialogVisible.value = false
-  loadData()
+  await Promise.all([loadData(), store.refreshReminders()])
 }
 
-onMounted(loadData)
+onMounted(async () => {
+  await Promise.all([loadData(), store.refreshReminders()])
+})
 </script>

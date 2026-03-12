@@ -15,9 +15,11 @@ import com.service.support.ViewAssembler;
 import com.vo.LoginVO;
 import com.vo.UserVO;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
@@ -34,14 +36,18 @@ public class AuthServiceImpl implements AuthService {
                 .eq(User::getDeleted, 0)
                 .last("limit 1"));
         if (user == null || !passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
+            log.warn("登录失败: username={}, reason=invalid_credentials", dto.getUsername());
             throw new BusinessException(400, "用户名或密码错误");
         }
         if (UserStatus.PENDING.name().equals(user.getStatus())) {
+            log.warn("登录失败: userId={}, username={}, reason=pending", user.getId(), user.getUsername());
             throw new BusinessException(403, "账号待审批");
         }
         if (UserStatus.DISABLED.name().equals(user.getStatus())) {
+            log.warn("登录失败: userId={}, username={}, reason=disabled", user.getId(), user.getUsername());
             throw new BusinessException(403, "账号已禁用");
         }
+        log.info("登录成功: userId={}, username={}, role={}", user.getId(), user.getUsername(), user.getRole());
         return new LoginVO(jwtUtil.generateToken(user.getId(), user.getRole()), viewAssembler.toUserVO(user));
     }
 
@@ -70,6 +76,7 @@ public class AuthServiceImpl implements AuthService {
         user.setPhone(dto.getPhone());
         user.setEmail(dto.getEmail());
         userMapper.insert(user);
+        log.info("注册提交成功: userId={}, username={}, role={}", user.getId(), user.getUsername(), user.getRole());
     }
 
     @Override
@@ -82,6 +89,7 @@ public class AuthServiceImpl implements AuthService {
         if (user == null) {
             throw new BusinessException(404, "用户不存在");
         }
+        log.info("获取当前用户信息: userId={}, username={}, role={}", user.getId(), user.getUsername(), user.getRole());
         return viewAssembler.toUserVO(user);
     }
 }

@@ -5,6 +5,7 @@ import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class JournalVO {
@@ -21,6 +22,7 @@ public class JournalVO {
     private Integer weekNo;
     private String teacherComment;
     private BigDecimal score;
+    private List<AttachmentVO> attachments;
     private LocalDateTime scoredAt;
     private LocalDateTime createTime;
 }

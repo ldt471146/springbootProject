@@ -50,9 +50,11 @@
 import { reactive, ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import PanelCard from '@/components/PanelCard.vue'
+import { useAppStore } from '@/store'
 import { listMyProjects } from '@/api/project'
 import { listProjectApplications, reviewApplication } from '@/api/application'
 
+const store = useAppStore()
 const projects = ref([])
 const records = ref([])
 const selectedProjectId = ref('')
@@ -97,8 +99,10 @@ async function submitReview() {
   await reviewApplication(currentId.value, reviewForm)
   ElMessage.success('审批已提交')
   dialogVisible.value = false
-  loadApplications()
+  await Promise.all([loadApplications(), store.refreshReminders()])
 }
 
-onMounted(loadProjects)
+onMounted(async () => {
+  await Promise.all([loadProjects(), store.refreshReminders()])
+})
 </script>

@@ -31,8 +31,19 @@ request.interceptors.response.use(
     }
     return payload.data
   },
-  (error) => {
-    const message = error.response?.data?.message || error.message || '网络异常'
+  async (error) => {
+    let message = error.message || '网络异常'
+    const responseData = error.response?.data
+    if (responseData instanceof Blob && responseData.type?.includes('application/json')) {
+      try {
+        const payload = JSON.parse(await responseData.text())
+        message = payload.message || message
+      } catch {
+        message = error.message || '网络异常'
+      }
+    } else {
+      message = responseData?.message || message
+    }
     if (error.response?.status === 401) {
       clearAuth()
       window.location.hash = '#/login'

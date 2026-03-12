@@ -24,11 +24,6 @@ export function listPendingUsers(params) {
   })
 }
 
-export async function fetchPendingUserCount() {
-  const data = await listPendingUsers({ page: 1, size: 1 })
-  return Number(data?.total || 0)
-}
-
 export function approveUser(id, data) {
   return request({
     url: `/api/user/${id}/approve`,
@@ -58,5 +53,12 @@ export function resetPassword(id, data) {
     url: `/api/user/password/reset/${id}`,
     method: 'put',
     data
+  })
+}
+
+export function deleteUser(id) {
+  return request({
+    url: `/api/user/${id}`,
+    method: 'delete'
   })
 }

@@ -11,24 +11,29 @@ import com.dto.PasswordDTO;
 import com.dto.PasswordResetDTO;
 import com.dto.UserProfileDTO;
 import com.dto.UserStatusDTO;
+import com.entity.InternshipProject;
 import com.entity.User;
 import com.exception.BusinessException;
+import com.mapper.InternshipProjectMapper;
 import com.mapper.UserMapper;
 import com.security.UserContext;
 import com.service.UserService;
 import com.service.support.ViewAssembler;
 import com.vo.UserVO;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
     private final UserMapper userMapper;
+    private final InternshipProjectMapper projectMapper;
     private final PasswordEncoder passwordEncoder;
     private final ViewAssembler viewAssembler;
 
@@ -44,6 +49,7 @@ public class UserServiceImpl implements UserService {
         user.setEmail(dto.getEmail());
         user.setAvatar(dto.getAvatar());
         userMapper.updateById(user);
+        log.info("个人资料已更新: userId={}, username={}", user.getId(), user.getUsername());
         return viewAssembler.toUserVO(user);
     }
 
@@ -55,6 +61,7 @@ public class UserServiceImpl implements UserService {
         }
         user.setPassword(passwordEncoder.encode(dto.getNewPassword()));
         userMapper.updateById(user);
+        log.info("用户已修改密码: userId={}, username={}", user.getId(), user.getUsername());
     }
 
     @Override
@@ -62,6 +69,8 @@ public class UserServiceImpl implements UserService {
         User user = getByIdOrThrow(userId);
         user.setPassword(passwordEncoder.encode(dto.getNewPassword()));
         userMapper.updateById(user);
+        log.info("管理员重置密码: targetUserId={}, username={}, operatorId={}",
+                user.getId(), user.getUsername(), UserContext.getCurrentUserId());
     }
 
     @Override
@@ -88,6 +97,8 @@ public class UserServiceImpl implements UserService {
                 ? UserStatus.ACTIVE.name()
                 : UserStatus.DISABLED.name());
         userMapper.updateById(user);
+        log.info("用户审批完成: targetUserId={}, username={}, result={}, operatorId={}",
+                user.getId(), user.getUsername(), user.getStatus(), UserContext.getCurrentUserId());
     }
 
     @Override
@@ -116,6 +127,32 @@ public class UserServiceImpl implements UserService {
         User user = getByIdOrThrow(userId);
         user.setStatus(dto.getStatus().name());
         userMapper.updateById(user);
+        log.info("用户状态已更新: targetUserId={}, username={}, newStatus={}, operatorId={}",
+                user.getId(), user.getUsername(), user.getStatus(), UserContext.getCurrentUserId());
+    }
+
+    @Override
+    public void deleteUser(Long userId) {
+        if (userId == null) {
+            throw new BusinessException(400, "用户不存在");
+        }
+        if (userId.equals(UserContext.getCurrentUserId())) {
+            throw new BusinessException(400, "不能删除当前登录账号");
+        }
+        User user = getByIdOrThrow(userId);
+        if (RoleEnum.ADMIN.name().equals(user.getRole())) {
+            throw new BusinessException(400, "不能删除管理员账号");
+        }
+        if (RoleEnum.TEACHER.name().equals(user.getRole())) {
+            Long projectCount = projectMapper.selectCount(new LambdaQueryWrapper<InternshipProject>()
+                    .eq(InternshipProject::getTeacherId, userId));
+            if (projectCount != null && projectCount > 0) {
+                throw new BusinessException(400, "该教师名下仍有关联项目，不能直接删除");
+            }
+        }
+        userMapper.deleteById(userId);
+        log.info("用户已删除: targetUserId={}, username={}, operatorId={}",
+                user.getId(), user.getUsername(), UserContext.getCurrentUserId());
     }
 
     @Override
@@ -125,6 +162,18 @@ public class UserServiceImpl implements UserService {
         }
         User user = userMapper.selectById(id);
         if (user == null || (user.getDeleted() != null && user.getDeleted() == 1)) {
+            throw new BusinessException(404, "用户不存在");
+        }
+        return user;
+    }
+
+    @Override
+    public User getByIdIncludingDeletedOrThrow(Long id) {
+        if (id == null) {
+            throw new BusinessException(404, "用户不存在");
+        }
+        User user = userMapper.selectIncludingDeletedById(id);
+        if (user == null) {
             throw new BusinessException(404, "用户不存在");
         }
         return user;

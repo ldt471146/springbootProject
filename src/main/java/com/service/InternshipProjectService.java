@@ -29,4 +29,6 @@ public interface InternshipProjectService {
     InternshipProject getByIdOrThrow(Long id);
 
     long countApprovedParticipants(Long projectId);
+
+    int autoArchiveExpiredProjects();
 }

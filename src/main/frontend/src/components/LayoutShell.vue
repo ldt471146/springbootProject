@@ -3,7 +3,13 @@
     <SidebarNav
       :user="store.user"
       :open="sidebarOpen"
-      :admin-pending-users-badge="store.adminPendingUsersBadge"
+      :reminder-badges="{
+        adminPendingUsers: store.adminPendingUsersBadge,
+        adminPendingGrades: store.adminPendingGradesBadge,
+        teacherPendingApplications: store.teacherPendingApplicationsBadge,
+        teacherPendingJournals: store.teacherPendingJournalsBadge,
+        teacherPendingReports: store.teacherPendingReportsBadge
+      }"
       @logout="handleLogout"
       @navigate="sidebarOpen = false"
     />
@@ -12,9 +18,17 @@
         <el-button @click="sidebarOpen = !sidebarOpen">菜单</el-button>
         <div class="soft-badge">{{ store.displayName }}</div>
       </div>
-      <HeaderBar :user="store.user" @toggle-sidebar="sidebarOpen = !sidebarOpen" />
+      <HeaderBar
+        :user="store.user"
+        :reminders="store.reminders"
+        @toggle-sidebar="sidebarOpen = !sidebarOpen"
+      />
       <div class="main-content">
-        <RouterView />
+        <RouterView v-slot="{ Component, route }">
+          <Transition name="page-switch" mode="out-in">
+            <component :is="Component" :key="route.path" />
+          </Transition>
+        </RouterView>
       </div>
     </main>
   </div>
@@ -32,17 +46,13 @@ const store = useAppStore()
 const router = useRouter()
 const sidebarOpen = ref(false)
 
-async function syncAdminBadges() {
-  if (store.role !== 'ADMIN') {
-    store.setAdminPendingUsersCount(0)
-    return
-  }
-  await store.refreshAdminPendingUsersCount()
+async function syncReminders() {
+  await store.refreshReminders()
 }
 
-onMounted(syncAdminBadges)
+onMounted(syncReminders)
 
-watch(() => store.role, syncAdminBadges)
+watch(() => store.role, syncReminders)
 
 async function handleLogout() {
   try {

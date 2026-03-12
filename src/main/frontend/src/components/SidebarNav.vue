@@ -45,9 +45,9 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  adminPendingUsersBadge: {
-    type: String,
-    default: ''
+  reminderBadges: {
+    type: Object,
+    default: () => ({})
   }
 })
 
@@ -83,9 +83,9 @@ const navGroups = computed(() => {
         items: [
           { path: '/dashboard', label: '总览' },
           { path: '/teacher/projects', label: '项目管理' },
-          { path: '/teacher/applications', label: '申请审批' },
-          { path: '/teacher/journals', label: '日志评阅' },
-          { path: '/teacher/reports', label: '报告评阅' },
+          { path: '/teacher/applications', label: '申请审批', badge: props.reminderBadges.teacherPendingApplications },
+          { path: '/teacher/journals', label: '日志评阅', badge: props.reminderBadges.teacherPendingJournals },
+          { path: '/teacher/reports', label: '报告评阅', badge: props.reminderBadges.teacherPendingReports },
           { path: '/teacher/students', label: '学生进度' }
         ]
       },
@@ -102,8 +102,8 @@ const navGroups = computed(() => {
         label: '系统控制',
         items: [
           { path: '/dashboard', label: '总览' },
-          { path: '/admin/users', label: '用户审批', badge: props.adminPendingUsersBadge },
-          { path: '/admin/grades', label: '成绩终审' },
+          { path: '/admin/users', label: '用户审批', badge: props.reminderBadges.adminPendingUsers },
+          { path: '/admin/grades', label: '成绩终审', badge: props.reminderBadges.adminPendingGrades },
           { path: '/admin/export', label: '导出中心' }
         ]
       },

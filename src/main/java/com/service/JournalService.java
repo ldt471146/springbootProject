@@ -3,7 +3,10 @@ package com.service;
 import com.common.PageResult;
 import com.dto.JournalDTO;
 import com.dto.JournalReviewDTO;
+import com.entity.Attachment;
+import com.vo.AttachmentVO;
 import com.vo.JournalVO;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -24,4 +27,10 @@ public interface JournalService {
     List<JournalVO> timeline(Long appId);
 
     JournalVO review(Long id, JournalReviewDTO dto);
+
+    AttachmentVO uploadAttachment(Long journalId, MultipartFile file);
+
+    void deleteAttachment(Long attachmentId);
+
+    Attachment getAttachmentByIdOrThrow(Long attachmentId);
 }

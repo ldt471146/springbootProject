@@ -25,7 +25,11 @@ public interface UserService {
 
     void changeStatus(Long userId, UserStatusDTO dto);
 
+    void deleteUser(Long userId);
+
     User getByIdOrThrow(Long id);
+
+    User getByIdIncludingDeletedOrThrow(Long id);
 
     UserVO getCurrentUser();
 }
